@@ -1,0 +1,63 @@
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+/* Main button container */
+.theme-toggle-button {
+  position: absolute;
+  /* Change these two lines */
+  bottom: 10px;
+  left: 10px;
+  
+  z-index: 1000;
+  cursor: pointer;
+  
+  /* Sizing and shaping */
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  
+  /* Flexbox for centering the icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  /* Smooth transition for colors and icon */
+  transition: all 0.3s ease;
+  overflow: hidden; /* Hides the part of the moon that moves in */
+}
+/* The icon element inside the button (sun/moon) */
+.theme-toggle-button .icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+/* --- Light Mode Styles --- */
+[data-theme='light'] .theme-toggle-button {
+  background-color: #f0c420; /* Sunny yellow */
+}
+[data-theme='light'] .theme-toggle-button .icon {
+  background-color: white; /* The sun's body */
+}
+
+/* --- Dark Mode Styles --- */
+[data-theme='dark'] .theme-toggle-button {
+  background-color: #48577e; /* Night sky blue */
+}
+[data-theme='dark'] .theme-toggle-button .icon {
+  background-color: #f0f0f0; /* The moon's body */
+  /* This box-shadow creates the crescent moon effect */
+  box-shadow: inset 8px -6px 0px 0px #48577e;
+  transform: scale(0.9);
+}
+
+/* Hover effect */
+.theme-toggle-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
