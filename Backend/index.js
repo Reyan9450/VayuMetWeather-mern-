@@ -11,7 +11,11 @@ dotenv.config();
 const app = express();
 // The database connection can be removed if you are only reading from local files
 // connectDB(); 
-
+const corsOptions = {
+  origin: 'YOUR_VERCEL_APP_URL', // e.g., 'https://vayumet-weather.vercel.app'
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
 app.use(cors());
 app.use(express.json()); // Middleware to parse JSON bodies
 
