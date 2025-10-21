@@ -12,7 +12,7 @@ const app = express();
 // The database connection can be removed if you are only reading from local files
 // connectDB(); 
 const corsOptions = {
-  origin: 'YOUR_VERCEL_APP_URL', // e.g., 'https://vayumet-weather.vercel.app'
+  origin: 'https://vayu-met-weather-mern.vercel.app/', // e.g., 'https://vayumet-weather.vercel.app'
   optionsSuccessStatus: 200
 };
 app.use(cors(corsOptions));
