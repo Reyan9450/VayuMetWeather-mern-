@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Define the base URL for your deployed backend
 // IMPORTANT: Replace with your actual Render backend URL
-const API_BASE_URL = 'https://vayumet-weather-server.onrender.com';
+const API_BASE_URL = 'https://vayumet-weather-server.onrender.com/';
 
 
 // Fetches all METAR data from your backend
