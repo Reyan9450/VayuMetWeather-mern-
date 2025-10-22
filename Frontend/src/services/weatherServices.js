@@ -1,30 +1,23 @@
 import axios from 'axios';
 
-// Define the base URL for your deployed backend
-// IMPORTANT: Replace with your actual Render backend URL
-const API_BASE_URL = 'https://vayumet-weather-server.onrender.com';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-
-// Fetches all METAR data from your backend
 export const fetchMetars = async () => {
-    try {
-        // Use the full API_BASE_URL
-        const response = await axios.get(`${API_BASE_URL}/api/metars`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching METAR data:", error);
-        return []; // Return an empty array on error
-    }
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/metars`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching METAR data:", error);
+    return [];
+  }
 };
 
-// Fetches all TAF data from your backend
 export const fetchTafs = async () => {
-    try {
-        // Use the full API_BASE_URL
-        const response = await axios.get(`${API_BASE_URL}/api/tafs`);
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching TAF data:", error);
-        return [];
-    }
+  try {
+    const response = await axios.get(`${API_BASE_URL}/api/tafs`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching TAF data:", error);
+    return [];
+  }
 };

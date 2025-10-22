@@ -11,12 +11,12 @@ dotenv.config();
 const app = express();
 // The database connection can be removed if you are only reading from local files
 // connectDB(); 
-const corsOptions = {
-  origin: 'https://vayu-met-weather-mern.vercel.app', // e.g., 'https://vayumet-weather.vercel.app'
-  optionsSuccessStatus: 200
-};
-app.use(cors(corsOptions));
-app.use(cors());
+
+app.use(cors({
+  origin: ['https://vayu-met-weather-mern.vercel.app'],
+  methods: ['GET', 'POST'],
+  credentials: true,
+}));
 app.use(express.json()); // Middleware to parse JSON bodies
 
 app.get('/', (req, res) => res.send('VayuMet API Running'));
