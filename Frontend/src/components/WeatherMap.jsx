@@ -84,7 +84,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
             radius={5}
             pathOptions={{ color: '#9370DB', fillColor: '#9370DB', fillOpacity: 0.7 }}
           >
-            <Popup><TafPopup taf={taf} /></Popup>
+            <Popup className='custom-popup'><TafPopup taf={taf} /></Popup>
           </CircleMarker>
         )
       ))}
