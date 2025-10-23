@@ -1,26 +1,33 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = "https://vayumet-weather-server.onrender.com";
 
 export const fetchMetars = async () => {
   try {
-    const response = await axios.get("https://vayumet-weather-server.onrender.com/api/metars", {
-      headers: { "Content-Type": "application/json" },
+    const response = await axios.get(`${API_BASE_URL}/api/metars`, {
+      withCredentials: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    console.log("Response:", response);
     return response.data;
   } catch (error) {
-    console.error("Axios Error:", error);
-    throw error;
+    console.error("Error fetching METAR data:", error.response || error);
+    return [];
   }
 };
 
 export const fetchTafs = async () => {
   try {
-    const response = await axios.get(`https://vayumet-weather-server.onrender.com/api/tafs`);
+    const response = await axios.get(`${API_BASE_URL}/api/tafs`, {
+      withCredentials: false,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     return response.data;
   } catch (error) {
-    console.error("Error fetching TAF data:", error);
+    console.error("Error fetching TAF data:", error.response || error);
     return [];
   }
 };
