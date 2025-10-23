@@ -103,7 +103,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
               weight: 1.5,
             }}
           >
-            <Popup><MetarPopup metar={metar} /></Popup>
+            <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
           </CircleMarker>
         )
       ))}
