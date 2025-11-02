@@ -109,33 +109,27 @@ async function loadAndProcessTafData() {
 async function loadAndProcessMetarData() {
   try {
     const stationMap = await getStationData(); // Get station data first
-    const metarFilePath = path.join(staticFilesDir, 'metar.xml'); // <-- Changed to .xml
+    const metarFilePath = path.join(staticFilesDir, 'metar.csv');
     const metarFileContent = await fs.readFile(metarFilePath, 'utf8');
     
-    // Parse XML content
-    const parsedMetarData = await parseStringPromise(metarFileContent);
-
-    const allMetarReports = parsedMetarData?.response?.data?.[0]?.METAR ?? []; // <-- Assuming METAR tag
+    // Parse CSV content
+    const parseResult = Papa.parse(metarFileContent, {
+      header: true,
+      skipEmptyLines: true
+    });
+    
+    const allMetarReports = parseResult.data ?? [];
 
     const enrichedMetars = allMetarReports.map(metarRecord => {
-      const stationId = metarRecord?.station_id?.[0]; // <-- Accessing array element
+      const stationId = metarRecord?.station_id;
       const stationInfo = stationMap[stationId] || {};
 
       return {
+        ...metarRecord,
         ...stationInfo, // Adds station_name, latitude, longitude
-        station_id: stationId,
-        raw_text: metarRecord?.raw_text?.[0],
-        flight_category: metarRecord?.flight_category?.[0] || 'UNKNOWN',
-        // --- Add other METAR-specific fields here, accessing with [0] ---
-        observation_time: metarRecord?.observation_time?.[0],
-        wind_dir_degrees: metarRecord?.wind_dir_degrees?.[0],
-        wind_speed_kt: metarRecord?.wind_speed_kt?.[0],
-        visibility_statute_mi: metarRecord?.visibility_statute_mi?.[0],
-        temp_c: metarRecord?.temp_c?.[0],
-        dewpoint_c: metarRecord?.dewpoint_c?.[0],
-        altimeter_in_hg: metarRecord?.altimeter_in_hg?.[0],
+        flight_category: metarRecord?.flight_category || 'UNKNOWN',
       };
-    }).filter(metar => metar.station_id && metar.latitude && metar.longitude);
+    }).filter(metar => metar.station_id && metar.latitude && metar.longitude); // Filter out bad data
 
     console.log("METAR data has been reloaded and cached.");
     return enrichedMetars;
