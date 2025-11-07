@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Popup, CircleMarker } from 'react-leaflet';
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
+<<<<<<< HEAD
 import { fetchMetars, fetchTafs } from '../services/weatherServices.js'; // ✅ Import your fetch-based functions
+=======
+import DataFetcher from './DataFetcher/DataFetcher.jsx'; // Import the new DataFetcher
+>>>>>>> MyLocalBranch
 
 // Configuration for different map themes
 const themes = {
@@ -24,7 +28,11 @@ const themes = {
 // Define the colors for METAR flight categories
 const flightCategoryColors = {
   VFR: '#79c88d',   // Green
+<<<<<<< HEAD
   MVFR: '#79a1c8',  // Blue
+=======
+  MVFR: '#79a1c8', // Blue
+>>>>>>> MyLocalBranch
   IFR: '#c87979',   // Red
   LIFR: '#c079c8',  // Magenta/Purple
   UNKNOWN: '#aaaaaa' // Gray
@@ -41,6 +49,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
     [90, 180]
   ];
 
+<<<<<<< HEAD
   useEffect(() => {
     if (activeWeatherLayers.tafs) {
       fetchTafs().then(setTafs);
@@ -85,6 +94,44 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
             pathOptions={{ color: '#9370DB', fillColor: '#9370DB', fillOpacity: 0.7 }}
           >
             <Popup className='custom-popup'><TafPopup taf={taf} /></Popup>
+=======
+  const getMetarColor = (category) => {
+    return flightCategoryColors[category] || flightCategoryColors.UNKNOWN;
+  };
+
+  return (
+    <MapContainer
+      className="map-container"
+      center={mapCenter}
+      zoom={zoomLevel}
+      scrollWheelZoom={true}
+      minZoom={4}
+      maxBounds={worldBounds}
+      maxBoundsViscosity={1.0}
+    >
+      <TileLayer
+        url={themes[theme]?.url || themes.osm.url}
+        attribution={themes[theme]?.attribution || themes.osm.attribution}
+        noWrap={true}
+      />
+
+      {/* This component now handles all data fetching */}
+      <DataFetcher
+        activeWeatherLayers={activeWeatherLayers}
+        setTafs={setTafs}
+        setMetars={setMetars}
+      />
+
+      {/* TAF markers */}
+      {activeWeatherLayers.tafs && tafs.map(taf => (
+        taf.latitude && taf.longitude && (
+          <CircleMarker
+            key={`taf-${taf.station_id}`}
+            center={[+taf.latitude, +taf.longitude]}
+            radius={5}
+            pathOptions={{ color: '#9370DB', fillColor: '#9370DB', fillOpacity: 0.7 }}
+          >
+            <Popup className='custom-popup'><TafPopup taf={taf} /></Popup>
           </CircleMarker>
         )
       ))}
@@ -104,10 +151,33 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
             }}
           >
             <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
+>>>>>>> MyLocalBranch
           </CircleMarker>
         )
       ))}
 
+<<<<<<< HEAD
+      {/* METAR markers */}
+      {activeWeatherLayers.metars && metars.map(metar => (
+        metar.latitude && metar.longitude && (
+          <CircleMarker
+            key={`metar-${metar.station_id}`}
+            center={[+metar.latitude, +metar.longitude]}
+            radius={6}
+            pathOptions={{
+              color: getMetarColor(metar.flight_category),
+              fillColor: getMetarColor(metar.flight_category),
+              fillOpacity: 0.8,
+              weight: 1.5,
+            }}
+          >
+            <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
+          </CircleMarker>
+        )
+      ))}
+
+=======
+>>>>>>> MyLocalBranch
       {activeWeatherLayers.metars && <MetarLegend />}
     </MapContainer>
   );

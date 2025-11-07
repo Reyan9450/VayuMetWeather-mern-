@@ -1,9 +1,10 @@
 import express from 'express';
 // Import all three controller functions
-import { getAllTafs, getTafByStationId, getTafByStationName } from '../controllers/taf.controller.js';
+import { getAllTafs, getTafByStationId, getTafByStationName,getTafsByBbox } from '../controllers/taf.controller.js';
 
 const router = express.Router();
 
+router.route('/mapdata').get(getTafsByBbox);
 // Route to get ALL TAFs
 router.route('/').get(getAllTafs);
 

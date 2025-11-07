@@ -55,3 +55,32 @@ export const getMetarByStationName = async (req, res) => {
         res.status(500).send('Server Error');
     }
 };
+
+/**
+ * @desc    Get METAR reports filtered by a bounding box
+ * @route   GET /api/metars/mapdata
+ */
+export const getMetarsByBbox = async (req, res) => {
+    try {
+        const { bbox } = req.query; // Get 'bbox' from query params
+
+        if (!bbox) {
+            console.log("Request to /mapdata missing bbox, returning empty array.");
+            return res.json([]);
+        }
+
+        const [north, west, south, east] = bbox.split(',').map(parseFloat);
+        const allMetars = await getMetarData(); // Get all data from cache
+
+        const filteredMetars = allMetars.filter(metar => {
+            const lat = parseFloat(metar.latitude);
+            const lon = parseFloat(metar.longitude);
+            return (lat <= north && lat >= south && lon >= west && lon <= east);
+        });
+
+        res.json(filteredMetars);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+};

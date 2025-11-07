@@ -55,3 +55,32 @@ export const getTafByStationName = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
+/**
+ * @desc    Get TAF reports filtered by a bounding box
+ * @route   GET /api/tafs/mapdata
+ */
+export const getTafsByBbox = async (req, res) => {
+  try {
+    const { bbox } = req.query; // Get 'bbox' from query params
+
+    if (!bbox) {
+      console.log("Request to /mapdata missing bbox, returning empty array.");
+      return res.json([]);
+    }
+
+    const [north, west, south, east] = bbox.split(',').map(parseFloat);
+    const allTafs = await getTafData(); // Get all data from the fast cache
+
+    const filteredTafs = allTafs.filter(taf => {
+      const lat = parseFloat(taf.latitude);
+      const lon = parseFloat(taf.longitude);
+      return (lat <= north && lat >= south && lon >= west && lon <= east);
+    });
+
+    res.json(filteredTafs);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
