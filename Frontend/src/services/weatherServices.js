@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // This MUST be the full, absolute URL of your backend on Render
-const API_BASE_URL = 'https://vayumet-weather-server.onrender.com';
+const API_BASE_URL = import.meta.env.MODE === 'production'
+  ? 'https://vayumet-weather-server.onrender.com'
+  : '';
 
 /**
  * Fetches METAR data for a specific bounding box
