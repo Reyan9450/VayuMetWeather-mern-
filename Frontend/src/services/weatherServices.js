@@ -1,37 +1,33 @@
-import axios from "axios";
+import axios from 'axios';
+
+// This MUST be the full, absolute URL of your backend on Render
+const API_BASE_URL = 'https://vayumet-weather-server.onrender.com';
 
 /**
  * Fetches METAR data for a specific bounding box
  * @param {string} bbox - The bounding box string "north,west,south,east"
  */
-
-// Fetches all METAR data from your backend
 export const fetchMetars = async (bbox) => {
-    if (!bbox) {
-        console.log("No bbox provided for fetchMetars, returning empty array.");
-        return [];
-    }
+    if (!bbox) return []; 
     try {
-        const response = await axios.get(`/api/metars/mapdata?bbox=${bbox}` );
-        // console.log("METAR data fetched for bbox:",response.data);
+        // The request now uses the full URL
+        const response = await axios.get(`${API_BASE_URL}/api/metars/mapdata?bbox=${bbox}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching METAR data:", error);
-        return []; // Return an empty array on error
+        return [];
     }
 };
+
 /**
  * Fetches TAF data for a specific bounding box
  * @param {string} bbox - The bounding box string "north,west,south,east"
  */
-// Fetches all TAF data from your backend
 export const fetchTafs = async (bbox) => {
-    if (!bbox) {
-        console.log("No bbox provided for fetchTafs, returning empty array.");
-        return [];
-    }
+    if (!bbox) return []; 
     try {
-        const response = await axios.get(`/api/tafs/mapdata?bbox=${bbox}` );
+        // The request now uses the full URL
+        const response = await axios.get(`${API_BASE_URL}/api/tafs/mapdata?bbox=${bbox}`);
         return response.data;
     } catch (error) {
         console.error("Error fetching TAF data:", error);
