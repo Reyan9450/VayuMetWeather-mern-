@@ -17,7 +17,7 @@ const themes = {
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, IGN, IGP, UPR-EGP, and the GIS User Community'
+    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   }
 };
 
@@ -26,21 +26,30 @@ const flightCategoryColors = {
   VFR: '#79c88d',   // Green
   MVFR: '#79a1c8', // Blue
   IFR: '#c87979',   // Red
-  LIFR: '#c079c8',  // Magenta/Purple
+  LIFR: '#c079c8', // Magenta/Purple
   UNKNOWN: '#aaaaaa' // Gray
 };
 
 const WeatherMap = ({ theme, activeWeatherLayers }) => {
   const mapCenter = [20.5937, 78.9629];
   const zoomLevel = 5;
-  const [tafs, setTafs] = useState([]);
-  const [metars, setMetars] = useState([]);
+
+  // --- 1. THE "STORE" (Holds ALL data) ---
+  // We initialize the state as a new Map() to hold all cached data.
+  const [tafsCache, setTafsCache] = useState(new Map());
+  const [metarsCache, setMetarsCache] = useState(new Map());
+
+  // --- 2. THE "WINDOW" (Holds ONLY visible data) ---
+  // This state holds only the markers that should be on-screen.
+  const [visibleTafs, setVisibleTafs] = useState([]);
+  const [visibleMetars, setVisibleMetars] = useState([]);
 
   const worldBounds = [
-    [-90, -180],
-    [90, 180]
+    [-90, -180], // Southwest corner
+    [90, 180]   // Northeast corner
   ];
 
+  // Helper function to get the correct color for a METAR marker
   const getMetarColor = (category) => {
     return flightCategoryColors[category] || flightCategoryColors.UNKNOWN;
   };
@@ -61,44 +70,50 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         noWrap={true}
       />
 
-      {/* This component now handles all data fetching */}
+      {/* This component handles all the logic:
+        1. It loads ALL data into the 'cache' state in the background.
+        2. It watches for map movements.
+        3. It updates the 'visible' state with only the markers in view.
+      */}
       <DataFetcher
         activeWeatherLayers={activeWeatherLayers}
-        setTafs={setTafs}
-        setMetars={setMetars}
+        // Pass down the "STORE"
+        tafsCache={tafsCache}
+        metarsCache={metarsCache}
+        setTafsCache={setTafsCache}
+        setMetarsCache={setMetarsCache}
+        // Pass down the "WINDOW"
+        setVisibleTafs={setVisibleTafs}
+        setVisibleMetars={setVisibleMetars}
       />
 
-      {/* TAF markers */}
-      {activeWeatherLayers.tafs && tafs.map(taf => (
-        taf.latitude && taf.longitude && (
-          <CircleMarker
-            key={`taf-${taf.station_id}`}
-            center={[+taf.latitude, +taf.longitude]}
-            radius={5}
-            pathOptions={{ color: '#9370DB', fillColor: '#9370DB', fillOpacity: 0.7 }}
-          >
-            <Popup className='custom-popup'><TafPopup taf={taf} /></Popup>
-          </CircleMarker>
-        )
+      {/* TAF markers - Renders ONLY the 'visible' markers for high performance */}
+      {activeWeatherLayers.tafs && visibleTafs.map(taf => (
+        <CircleMarker
+          key={`taf-${taf.station_id}`}
+          center={[+taf.latitude, +taf.longitude]}
+          radius={5}
+          pathOptions={{ color: '#9370DB', fillColor: '#9370DB', fillOpacity: 0.7 }}
+        >
+          <Popup className='custom-popup'><TafPopup taf={taf} /></Popup>
+        </CircleMarker>
       ))}
 
-      {/* METAR markers */}
-      {activeWeatherLayers.metars && metars.map(metar => (
-        metar.latitude && metar.longitude && (
-          <CircleMarker
-            key={`metar-${metar.station_id}`}
-            center={[+metar.latitude, +metar.longitude]}
-            radius={6}
-            pathOptions={{
-              color: getMetarColor(metar.flight_category),
-              fillColor: getMetarColor(metar.flight_category),
-              fillOpacity: 0.8,
-              weight: 1.5,
-            }}
-          >
-            <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
-          </CircleMarker>
-        )
+      {/* METAR markers - Renders ONLY the 'visible' markers for high performance */}
+      {activeWeatherLayers.metars && visibleMetars.map(metar => (
+        <CircleMarker
+          key={`metar-${metar.station_id}`}
+          center={[+metar.latitude, +metar.longitude]}
+          radius={6}
+          pathOptions={{
+            color: getMetarColor(metar.flight_category),
+            fillColor: getMetarColor(metar.flight_category),
+            fillOpacity: 0.8,
+            weight: 1.5,
+          }}
+        >
+          <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
+        </CircleMarker>
       ))}
 
       {activeWeatherLayers.metars && <MetarLegend />}

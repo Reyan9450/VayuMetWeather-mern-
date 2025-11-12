@@ -1,38 +1,27 @@
 import axios from 'axios';
 
-// This MUST be the full, absolute URL of your backend on Render
+// This logic automatically selects the correct URL for dev vs. production
 const API_BASE_URL = import.meta.env.MODE === 'production'
   ? 'https://vayumet-weather-server.onrender.com'
   : '';
 
-/**
- * Fetches METAR data for a specific bounding box
- * @param {string} bbox - The bounding box string "north,west,south,east"
- */
-export const fetchMetars = async (bbox) => {
-    if (!bbox) return []; 
+// We only need the functions that fetch ALL data
+export const fetchAllMetars = async () => {
     try {
-        // The request now uses the full URL
-        const response = await axios.get(`${API_BASE_URL}/api/metars/mapdata?bbox=${bbox}`);
+        const response = await axios.get(`${API_BASE_URL}/api/metars`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching METAR data:", error);
+        console.error("Error fetching ALL METARs:", error);
         return [];
     }
 };
 
-/**
- * Fetches TAF data for a specific bounding box
- * @param {string} bbox - The bounding box string "north,west,south,east"
- */
-export const fetchTafs = async (bbox) => {
-    if (!bbox) return []; 
+export const fetchAllTafs = async () => {
     try {
-        // The request now uses the full URL
-        const response = await axios.get(`${API_BASE_URL}/api/tafs/mapdata?bbox=${bbox}`);
+        const response = await axios.get(`${API_BASE_URL}/api/tafs`);
         return response.data;
     } catch (error) {
-        console.error("Error fetching TAF data:", error);
+        console.error("Error fetching ALL TAFs:", error);
         return [];
     }
 };

@@ -1,49 +1,96 @@
 import React, { useEffect, useCallback } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { fetchMetars, fetchTafs } from '../../services/weatherServices.js';
+import { fetchAllMetars, fetchAllTafs } from '../../services/weatherServices.js';
 
-/**
- * This component handles all dynamic data fetching based on map events.
- * It lives inside the MapContainer and has no visible UI.
- */
-const DataFetcher = ({ activeWeatherLayers, setTafs, setMetars }) => {
+const DataFetcher = ({
+  activeWeatherLayers,
+  setTafsCache,
+  setMetarsCache,
+  setVisibleTafs,
+  setVisibleMetars,
+  tafsCache,
+  metarsCache
+}) => {
   const map = useMap();
 
-  // We use useCallback to memoize this function so it's not recreated on every render
-  const fetchData = useCallback(async () => {
+  // --- JOB 1: Background Pre-caching (Runs ONCE) ---
+  useEffect(() => {
+    // This function will run in the background on first load
+    const backgroundLoad = async () => {
+      console.log("Starting background load of all data...");
+      
+      const [allTafs, allMetars] = await Promise.all([
+        fetchAllTafs(),
+        fetchAllMetars()
+      ]);
+
+      // Load TAFs into the main cache
+      setTafsCache(() => {
+        const newMap = new Map();
+        allTafs.forEach(taf => newMap.set(taf.station_id, taf));
+        console.log(`Background TAFs loaded: ${newMap.size} stations cached.`);
+        return newMap;
+      });
+
+      // Load METARs into the main cache
+      setMetarsCache(() => {
+        const newMap = new Map();
+        allMetars.forEach(metar => newMap.set(metar.station_id, metar));
+        console.log(`Background METARs loaded: ${newMap.size} stations cached.`);
+        return newMap;
+      });
+    };
+
+    backgroundLoad();
+  }, [setTafsCache, setMetarsCache]); // Empty array means this runs only once on mount
+
+  
+  // --- JOB 2: Update Visible Markers (Runs on Map Move) ---
+  const updateVisibleMarkers = useCallback(() => {
+    if (!map) return;
+
     const bounds = map.getBounds();
-    const { _northEast, _southWest } = bounds;
-    
 
-    // Format the bounds into the string our API expects: "north,west,south,east"
-    const bbox = `${_northEast.lat},${_southWest.lng},${_southWest.lat},${_northEast.lng}`;
-    // console.log("Fetching data for bounds:", bbox);
-    // Fetch data only for active layers
+    // Update Visible TAFs
     if (activeWeatherLayers.tafs) {
-      fetchTafs(bbox).then(setTafs);
+      const visible = [];
+      for (const taf of tafsCache.values()) {
+        const loc = L.latLng(taf.latitude, taf.longitude);
+        if (bounds.contains(loc)) {
+          visible.push(taf);
+        }
+      }
+      setVisibleTafs(visible);
     } else {
-      setTafs([]); // Clear data if layer is off
+      setVisibleTafs([]);
     }
 
+    // Update Visible METARs
     if (activeWeatherLayers.metars) {
-      fetchMetars(bbox).then(setMetars);
+      const visible = [];
+      for (const metar of metarsCache.values()) {
+        const loc = L.latLng(metar.latitude, metar.longitude);
+        if (bounds.contains(loc)) {
+          visible.push(metar);
+        }
+      }
+      setVisibleMetars(visible);
     } else {
-      setMetars([]);
+      setVisibleMetars([]);
     }
-  }, [map, activeWeatherLayers, setTafs, setMetars]); // Dependencies
+  }, [map, activeWeatherLayers, tafsCache, metarsCache, setVisibleTafs, setVisibleMetars]);
 
-  // This hook listens for map events
+  // This hook listens for map movements
   useMapEvents({
     moveend: () => { // Fires when the user stops panning or zooming
-      fetchData();
+      updateVisibleMarkers();
     }
   });
 
-  // This hook triggers a fetch when a layer is toggled on/off
-  // It also triggers the very first data load when the map loads
+  // This hook updates visible markers if the layers are toggled
   useEffect(() => {
-    fetchData();
-  }, [fetchData, activeWeatherLayers]);
+    updateVisibleMarkers();
+  }, [activeWeatherLayers, updateVisibleMarkers]);
 
   return null; // This component doesn't render any visible UI
 };
