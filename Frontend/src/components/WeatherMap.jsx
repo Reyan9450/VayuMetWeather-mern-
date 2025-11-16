@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
-import { MapContainer, TileLayer, Popup, CircleMarker } from 'react-leaflet';
+// Import Polygon
+import { MapContainer, TileLayer, Popup, CircleMarker, Polygon } from 'react-leaflet'; 
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
-import DataFetcher from './DataFetcher/DataFetcher.jsx'; // Import the new DataFetcher
+import SigmetLegend from './SigmetLegend/SigmetLegend'; // <-- 1. IMPORT THE NEW LEGEND
+import DataFetcher from './DataFetcher/DataFetcher';
+import L from 'leaflet';
 
 // Configuration for different map themes
 const themes = {
@@ -30,26 +33,27 @@ const flightCategoryColors = {
   UNKNOWN: '#aaaaaa' // Gray
 };
 
+
 const WeatherMap = ({ theme, activeWeatherLayers }) => {
   const mapCenter = [20.5937, 78.9629];
   const zoomLevel = 5;
 
-  // --- 1. THE "STORE" (Holds ALL data) ---
-  // We initialize the state as a new Map() to hold all cached data.
+  // Caches for all data
   const [tafsCache, setTafsCache] = useState(new Map());
   const [metarsCache, setMetarsCache] = useState(new Map());
-
-  // --- 2. THE "WINDOW" (Holds ONLY visible data) ---
-  // This state holds only the markers that should be on-screen.
+  
+  // Arrays for currently visible markers
   const [visibleTafs, setVisibleTafs] = useState([]);
   const [visibleMetars, setVisibleMetars] = useState([]);
 
-  const worldBounds = [
-    [-90, -180], // Southwest corner
-    [90, 180]   // Northeast corner
-  ];
+  // State for SIGMETs (loaded all at once)
+  const [sigmets, setSigmets] = useState([]); 
 
-  // Helper function to get the correct color for a METAR marker
+  const worldBounds = L.latLngBounds(
+    L.latLng(-90, -180),
+    L.latLng(90, 180)
+  );
+
   const getMetarColor = (category) => {
     return flightCategoryColors[category] || flightCategoryColors.UNKNOWN;
   };
@@ -70,11 +74,6 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         noWrap={true}
       />
 
-      {/* This component handles all the logic:
-        1. It loads ALL data into the 'cache' state in the background.
-        2. It watches for map movements.
-        3. It updates the 'visible' state with only the markers in view.
-      */}
       <DataFetcher
         activeWeatherLayers={activeWeatherLayers}
         // Pass down the "STORE"
@@ -85,9 +84,11 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         // Pass down the "WINDOW"
         setVisibleTafs={setVisibleTafs}
         setVisibleMetars={setVisibleMetars}
+        // Pass down the SIGMET setter
+        setSigmets={setSigmets} 
       />
 
-      {/* TAF markers - Renders ONLY the 'visible' markers for high performance */}
+      {/* --- Render TAFs --- */}
       {activeWeatherLayers.tafs && visibleTafs.map(taf => (
         <CircleMarker
           key={`taf-${taf.station_id}`}
@@ -99,7 +100,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </CircleMarker>
       ))}
 
-      {/* METAR markers - Renders ONLY the 'visible' markers for high performance */}
+      {/* --- Render METARs --- */}
       {activeWeatherLayers.metars && visibleMetars.map(metar => (
         <CircleMarker
           key={`metar-${metar.station_id}`}
@@ -116,7 +117,30 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </CircleMarker>
       ))}
 
+      {/* --- Render SIGMET Polygons --- */}
+      {activeWeatherLayers.sigmets && sigmets.map(sigmet => (
+        <Polygon
+          key={`sigmet-${sigmet.id}`} 
+          positions={sigmet.coordinates} 
+          // --- 2. USE THE DYNAMIC COLOR FROM THE BACKEND ---
+          pathOptions={{ 
+            color: sigmet.color,       
+            fillColor: sigmet.color,   
+            fillOpacity: 0.3 
+          }}
+        >
+          <Popup className="custom-popup">
+            <strong>SIGMET: {sigmet.hazardType}</strong><br/>
+            Valid: {sigmet.validFrom} to {sigmet.validTo}<br/>
+            Altitude: {sigmet.altitude}
+          </Popup>
+        </Polygon>
+      ))}
+
+      {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
       {activeWeatherLayers.metars && <MetarLegend />}
+      {activeWeatherLayers.sigmets && <SigmetLegend />}
+
     </MapContainer>
   );
 };

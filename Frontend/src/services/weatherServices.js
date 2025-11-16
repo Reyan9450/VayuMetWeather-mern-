@@ -25,3 +25,14 @@ export const fetchAllTafs = async () => {
         return [];
     }
 };
+
+export const fetchAllSigmets = async () => {
+    try {
+        const response = await axios.get(`http://localhost:5000/api/sigmets`);
+        console.log("Fetched SIGMET list:", response.data);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching SIGMET list:", error);
+        return [];
+    }
+};

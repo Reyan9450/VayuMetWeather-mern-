@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { fetchAllMetars, fetchAllTafs } from '../../services/weatherServices.js';
+import { fetchAllMetars, fetchAllTafs , fetchAllSigmets} from '../../services/weatherServices.js';
 
 const DataFetcher = ({
   activeWeatherLayers,
@@ -9,7 +9,9 @@ const DataFetcher = ({
   setVisibleTafs,
   setVisibleMetars,
   tafsCache,
-  metarsCache
+  metarsCache,
+  setSigmets
+  
 }) => {
   const map = useMap();
 
@@ -92,7 +94,20 @@ const DataFetcher = ({
     updateVisibleMarkers();
   }, [activeWeatherLayers, updateVisibleMarkers]);
 
+  useEffect(() => {
+    if (activeWeatherLayers.sigmets) {
+      console.log("Fetching SIGMETs...");
+      fetchAllSigmets().then(data => {
+        setSigmets(data); // Set the data
+      });
+    } else {
+      setSigmets([]); // Clear data if layer is off
+    }
+  }, [activeWeatherLayers.sigmets, setSigmets]);
+
   return null; // This component doesn't render any visible UI
 };
+
+
 
 export default DataFetcher;
