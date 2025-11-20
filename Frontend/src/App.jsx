@@ -7,7 +7,7 @@ function App() {
   const [theme, setTheme] = useState('light');
   const [activeBaseLayer, setActiveBaseLayer] = useState('osm');
   const [activeWeatherLayers, setActiveWeatherLayers] = useState({
-    tafs: false, metars: false, sigmets: false, windsAloft: false, weatherSymbols: false
+    tafs: true, metars: true, sigmets: false, windsAloft: false, weatherSymbols: false
   });
   
   // New state for the exclusive forecast layers
