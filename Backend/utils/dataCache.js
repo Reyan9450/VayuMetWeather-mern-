@@ -2,6 +2,7 @@ import { promises as fs, watch } from 'fs'; // Import 'watch'
 import path from 'path';
 import { parseStringPromise } from 'xml2js';
 import Papa from 'papaparse'; // For parsing CSV
+import {getWeatherIconUrl} from "./WeatherIconHelper.js"
 
 // --- In-Memory Caches ---
 // These variables will hold our processed data
@@ -125,6 +126,7 @@ async function loadAndProcessMetarData() {
     const metarFilePath = path.join(staticFilesDir, 'metar.csv');
     const metarFileContent = await fs.readFile(metarFilePath, 'utf8');
     
+    
     // Parse CSV content
     const parseResult = Papa.parse(metarFileContent, {
       header: true,
@@ -136,6 +138,9 @@ async function loadAndProcessMetarData() {
     const enrichedMetars = allMetarReports.map(metarRecord => {
       const stationId = metarRecord?.station_id;
       const stationInfo = stationMap[stationId] || {};
+
+      // --- 2. CALCULATE ICON URL ---
+      const iconUrl = getWeatherIconUrl(metarRecord);
 
       return {
         ...metarRecord,

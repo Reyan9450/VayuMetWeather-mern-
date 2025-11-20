@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 // Import Polygon
-import { MapContainer, TileLayer, Popup, CircleMarker, Polygon } from 'react-leaflet'; 
+import { MapContainer, TileLayer, Popup, CircleMarker, Polygon,Marker } from 'react-leaflet'; 
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
 import SigmetLegend from './SigmetLegend/SigmetLegend'; // <-- 1. IMPORT THE NEW LEGEND
 import DataFetcher from './DataFetcher/DataFetcher';
+import WeatherSymbolLegend from "./WeatherSymbolLegend/WeatherSymbolLegend";
 import L from 'leaflet';
 
 // Configuration for different map themes
@@ -23,6 +24,7 @@ const themes = {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   }
 };
+
 
 // Define the colors for METAR flight categories
 const flightCategoryColors = {
@@ -117,6 +119,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </CircleMarker>
       ))}
 
+ 
       {/* --- Render SIGMET Polygons --- */}
       {activeWeatherLayers.sigmets && sigmets.map(sigmet => (
         <Polygon
@@ -138,6 +141,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
       ))}
 
       {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
+      
       {activeWeatherLayers.metars && <MetarLegend />}
       {activeWeatherLayers.sigmets && <SigmetLegend />}
 
