@@ -2,7 +2,8 @@ import { promises as fs, watch } from 'fs'; // Import 'watch'
 import path from 'path';
 import { parseStringPromise } from 'xml2js';
 import Papa from 'papaparse'; // For parsing CSV
-import {getWeatherIconUrl} from "./WeatherIconHelper.js"
+// Import the helper for weather icons
+import { getWeatherIconUrl } from './WeatherIconHelper.js'; 
 
 // --- In-Memory Caches ---
 // These variables will hold our processed data
@@ -126,7 +127,6 @@ async function loadAndProcessMetarData() {
     const metarFilePath = path.join(staticFilesDir, 'metar.csv');
     const metarFileContent = await fs.readFile(metarFilePath, 'utf8');
     
-    
     // Parse CSV content
     const parseResult = Papa.parse(metarFileContent, {
       header: true,
@@ -139,13 +139,14 @@ async function loadAndProcessMetarData() {
       const stationId = metarRecord?.station_id;
       const stationInfo = stationMap[stationId] || {};
 
-      // --- 2. CALCULATE ICON URL ---
-      const iconUrl = getWeatherIconUrl(metarRecord);
+      // --- NEW: Calculate icon URL using helper ---
+      const iconUrl = getWeatherIconUrl(metarRecord); 
 
       return {
         ...metarRecord,
         ...stationInfo, // Adds station_name, latitude, longitude
         flight_category: metarRecord?.flight_category || 'UNKNOWN',
+        iconUrl: iconUrl // --- Add the icon URL to the data ---
       };
     }).filter(metar => metar.station_id && metar.latitude && metar.longitude); // Filter out bad data
 
@@ -153,6 +154,59 @@ async function loadAndProcessMetarData() {
     return enrichedMetars;
   } catch (err) {
     console.error("Error loading METAR data:", err.message);
+    return [];
+  }
+}
+
+/**
+ * Loads and processes SIGMET data from isigmet.json
+ */
+async function loadAndProcessSigmetData() {
+  try {
+    const sigmetFilePath = path.join(staticFilesDir, 'isigmet.json');
+    const sigmetFileContent = await fs.readFile(sigmetFilePath, 'utf8');
+    const sigmetData = JSON.parse(sigmetFileContent);
+    
+    // Transform the data into the format our frontend needs
+    const enrichedSigmets = sigmetData.map((sigmet, index) => {
+      
+      let leafletCoords = []; // Default to an empty array
+
+      // Check if sigmet.coords is actually a valid array before trying to map it
+      if (Array.isArray(sigmet.coords)) {
+        leafletCoords = sigmet.coords
+          .map(point => {
+            // Check if point and its lat/lon are valid numbers
+            if (point && typeof point.lat === 'number' && typeof point.lon === 'number') {
+              return [point.lat, point.lon];
+            }
+            return null; // Discard this point if it's invalid
+          })
+          .filter(coord => coord !== null); // Filter out any null (invalid) points
+      }
+      
+      // Determine color based on hazard type
+      const hazard = sigmet.hazard || 'DEFAULT';
+      const color = sigmetHazardConfig[hazard] || sigmetHazardConfig['DEFAULT'];
+
+      return {
+        id: sigmet.isigmetId || index,
+        coordinates: leafletCoords, // Use the new, clean array
+        hazardType: sigmet.hazard,
+        color: color, // Send the color to the frontend
+        altitude: sigmet.top ? `FL${Math.floor(sigmet.base / 100)}-${Math.floor(sigmet.top / 100)}` : 'N/A',
+        validFrom: formatDateTime(new Date(sigmet.validTimeFrom * 1000).toISOString()),
+        validTo: formatDateTime(new Date(sigmet.validTimeTo * 1000).toISOString()),
+        rawSigmet: sigmet.rawSigmet
+      };
+    })
+    // Filter out any SIGMETs that ended up with no valid coordinates
+    .filter(sigmet => sigmet.coordinates.length > 0); 
+
+    console.log("SIGMET data has been reloaded and cached.");
+    return enrichedSigmets;
+  } catch (err) {
+    console.error("Error loading SIGMET data:", err.message);
     return [];
   }
 }
@@ -170,54 +224,6 @@ function formatDateTime(isoStr) {
   return `${day}/${month}/${year} ${hours}:${minutes} UTC`;
 }
 
-/**
- * Loads and processes SIGMET data from isigmet.json
- */
-async function loadAndProcessSigmetData() {
-  try {
-    const sigmetFilePath = path.join(staticFilesDir, 'isigmet.json');
-    const sigmetFileContent = await fs.readFile(sigmetFilePath, 'utf8');
-    const sigmetData = JSON.parse(sigmetFileContent);
-    
-    const enrichedSigmets = sigmetData.map((sigmet, index) => {
-      
-      let leafletCoords = [];
-      // Validate and format coordinates
-      if (Array.isArray(sigmet.coords)) {
-        leafletCoords = sigmet.coords
-          .map(point => {
-            if (point && typeof point.lat === 'number' && typeof point.lon === 'number') {
-              return [point.lat, point.lon];
-            }
-            return null; 
-          })
-          .filter(coord => coord !== null); 
-      }
-      
-      // Determine color based on hazard type
-      const hazard = sigmet.hazard || 'DEFAULT';
-      const color = sigmetHazardConfig[hazard] || sigmetHazardConfig['DEFAULT'];
-
-      return {
-        id: sigmet.isigmetId || index,
-        coordinates: leafletCoords, 
-        hazardType: sigmet.hazard,
-        color: color, // Send the color to the frontend
-        altitude: sigmet.top ? `FL${Math.floor(sigmet.base / 100)}-${Math.floor(sigmet.top / 100)}` : 'N/A',
-        validFrom: formatDateTime(new Date(sigmet.validTimeFrom * 1000).toISOString()),
-        validTo: formatDateTime(new Date(sigmet.validTimeTo * 1000).toISOString()),
-        rawSigmet: sigmet.rawSigmet
-      };
-    })
-    .filter(sigmet => sigmet.coordinates.length > 0); 
-
-    console.log("SIGMET data has been reloaded and cached.");
-    return enrichedSigmets;
-  } catch (err) {
-    console.error("Error loading SIGMET data:", err.message);
-    return [];
-  }
-}
 // --- Public Accessor Functions (Controllers will use these) ---
 
 export const getStationData = async () => {
@@ -247,6 +253,7 @@ export const getSigmetData = async () => {
   }
   return sigmetDataCache;
 };
+
 // --- File Watcher Logic ---
 // This section automatically clears the cache when you replace a file.
 
@@ -269,12 +276,11 @@ watch(staticFilesDir, (eventType, filename) => {
     } else if (filename.endsWith('metar.csv')) {
       console.log("METAR file changed, clearing METAR cache...");
       metarDataCache = null;
-    }
-    
-    else if (filename.endsWith('isigmet.json')) {
+    } else if (filename.endsWith('isigmet.json')) {
       console.log("SIGMET file changed, clearing SIGMET cache...");
       sigmetDataCache = null;
     }
+
     // Debounce to prevent multiple triggers for one file save
     setTimeout(() => {
       fsWait = false;

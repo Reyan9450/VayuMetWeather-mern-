@@ -3,11 +3,12 @@ import axios from 'axios';
 // This logic automatically selects the correct URL for dev vs. production
 const API_BASE_URL = import.meta.env.MODE === 'production'
   ? 'https://vayumet-weather-server.onrender.com'
-  : '';
+  : 'http://localhost:5000';
 
 // We only need the functions that fetch ALL data
 export const fetchAllMetars = async () => {
     try {
+        // const response = await axios.get(`${API_BASE_URL}/api/metars`);
         const response = await axios.get(`${API_BASE_URL}/api/metars`);
         return response.data;
     } catch (error) {

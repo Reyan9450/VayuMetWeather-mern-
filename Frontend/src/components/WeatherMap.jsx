@@ -25,6 +25,18 @@ const themes = {
   }
 };
 
+// Helper to create the custom icon object for Leaflet
+const createWeatherIcon = (url) => {
+//  console.log("Creating weather icon with URL:", url);
+  
+  return L.icon({
+    iconUrl: url || '/icons/clear-day.svg', // Fallback
+    iconSize: [30, 30], 
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+};
+
 
 // Define the colors for METAR flight categories
 const flightCategoryColors = {
@@ -118,7 +130,19 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
           <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
         </CircleMarker>
       ))}
-
+     
+     {/* 4. ADD THIS NEW BLOCK FOR WEATHER SYMBOLS */}
+      {activeWeatherLayers.weatherForecast && visibleMetars.map(metar => (
+        <Marker
+          key={`wx-${metar.station_id}`}
+          position={[+metar.latitude, +metar.longitude]}
+          // Use the helper to create the icon from the URL provided by the backend
+          icon={createWeatherIcon(metar.iconUrl)} 
+        >
+          {/* We can reuse the MetarPopup since it has all the weather info */}
+        
+        </Marker>
+      ))}
  
       {/* --- Render SIGMET Polygons --- */}
       {activeWeatherLayers.sigmets && sigmets.map(sigmet => (
@@ -141,7 +165,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
       ))}
 
       {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
-      
+      {activeWeatherLayers.weatherForecast && <WeatherSymbolLegend />}
       {activeWeatherLayers.metars && <MetarLegend />}
       {activeWeatherLayers.sigmets && <SigmetLegend />}
 
