@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 // Import Polygon
-import { MapContainer, TileLayer, Popup, CircleMarker, Polygon } from 'react-leaflet'; 
+import { MapContainer, TileLayer, Popup, CircleMarker, Polygon,Marker } from 'react-leaflet'; 
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
 import SigmetLegend from './SigmetLegend/SigmetLegend'; // <-- 1. IMPORT THE NEW LEGEND
 import DataFetcher from './DataFetcher/DataFetcher';
+import WeatherSymbolLegend from "./WeatherSymbolLegend/WeatherSymbolLegend";
 import L from 'leaflet';
 
 // Configuration for different map themes
@@ -23,6 +24,19 @@ const themes = {
     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
   }
 };
+
+// Helper to create the custom icon object for Leaflet
+const createWeatherIcon = (url) => {
+//  console.log("Creating weather icon with URL:", url);
+  
+  return L.icon({
+    iconUrl: url || '/icons/clear-day.svg', // Fallback
+    iconSize: [30, 30], 
+    iconAnchor: [15, 15],
+    popupAnchor: [0, -15]
+  });
+};
+
 
 // Define the colors for METAR flight categories
 const flightCategoryColors = {
@@ -116,7 +130,20 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
           <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
         </CircleMarker>
       ))}
-
+     
+     {/* 4. ADD THIS NEW BLOCK FOR WEATHER SYMBOLS */}
+      {activeWeatherLayers.weatherForecast && visibleMetars.map(metar => (
+        <Marker
+          key={`wx-${metar.station_id}`}
+          position={[+metar.latitude, +metar.longitude]}
+          // Use the helper to create the icon from the URL provided by the backend
+          icon={createWeatherIcon(metar.iconUrl)} 
+        >
+          {/* We can reuse the MetarPopup since it has all the weather info */}
+        
+        </Marker>
+      ))}
+ 
       {/* --- Render SIGMET Polygons --- */}
       {activeWeatherLayers.sigmets && sigmets.map(sigmet => (
         <Polygon
@@ -138,6 +165,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
       ))}
 
       {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
+      {activeWeatherLayers.weatherForecast && <WeatherSymbolLegend />}
       {activeWeatherLayers.metars && <MetarLegend />}
       {activeWeatherLayers.sigmets && <SigmetLegend />}
 

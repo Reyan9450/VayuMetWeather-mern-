@@ -12,7 +12,7 @@ export const weatherLayers = [
   { id: 'tafs', name: 'TAF' },
   { id: 'sigmets', name: 'SIGMET' },
   { id: 'windsAloft', name: 'Winds Aloft' },
-  { id: 'weatherSymbols', name: 'Weather Symbols' },
+  { id: 'weatherForecast', name: 'Weather Forecast' },
 ];
 
 export const forecastElements = [

@@ -1,9 +1,15 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import { useMap, useMapEvents } from 'react-leaflet';
-import { fetchAllMetars, fetchAllTafs , fetchAllSigmets} from '../../services/weatherServices.js';
+import { 
+  
+  fetchAllMetars, 
+  fetchAllTafs, 
+  fetchAllSigmets 
+} from '../../services/weatherServices.js';
+import L from 'leaflet';
 
 const DataFetcher = ({
-  activeWeatherLayers,
+  activeWeatherLayers, // Expecting an object: { tafs: true, metars: false, ... }
   setTafsCache,
   setMetarsCache,
   setVisibleTafs,
@@ -11,40 +17,44 @@ const DataFetcher = ({
   tafsCache,
   metarsCache,
   setSigmets
-  
 }) => {
   const map = useMap();
+  const [hasLoadedVisible, setHasLoadedVisible] = useState(false);
 
-  // --- JOB 1: Background Pre-caching (Runs ONCE) ---
+  // --- JOB 1: Background Pre-caching (Runs ONCE after initial load) ---
   useEffect(() => {
-    // This function will run in the background on first load
     const backgroundLoad = async () => {
       console.log("Starting background load of all data...");
       
-      const [allTafs, allMetars] = await Promise.all([
-        fetchAllTafs(),
-        fetchAllMetars()
-      ]);
+      // 1. Load TAFs
+      if (activeWeatherLayers.tafs) {
+        const allTafs = await fetchAllTafs();
+        setTafsCache(prevMap => {
+          const newMap = new Map(prevMap);
+          allTafs.forEach(taf => newMap.set(taf.station_id, taf));
+          console.log(`Background TAFs loaded: ${newMap.size} stations cached.`);
+          return newMap;
+        });
+      }
 
-      // Load TAFs into the main cache
-      setTafsCache(() => {
-        const newMap = new Map();
-        allTafs.forEach(taf => newMap.set(taf.station_id, taf));
-        console.log(`Background TAFs loaded: ${newMap.size} stations cached.`);
-        return newMap;
-      });
-
-      // Load METARs into the main cache
-      setMetarsCache(() => {
-        const newMap = new Map();
-        allMetars.forEach(metar => newMap.set(metar.station_id, metar));
-        console.log(`Background METARs loaded: ${newMap.size} stations cached.`);
-        return newMap;
-      });
+      // 2. Load METARs (Needed if 'metars' OR 'weatherForecast' is active)
+      if (activeWeatherLayers.metars || activeWeatherLayers.weatherForecast) {
+        const allMetars = await fetchAllMetars();
+        setMetarsCache(prevMap => {
+          const newMap = new Map(prevMap);
+          allMetars.forEach(metar => newMap.set(metar.station_id, metar));
+          console.log(`Background METARs loaded: ${newMap.size} stations cached.`);
+          return newMap;
+        });
+      }
     };
 
-    backgroundLoad();
-  }, [setTafsCache, setMetarsCache]); // Empty array means this runs only once on mount
+    // Only run background load if we've already shown visible data
+    if (hasLoadedVisible) {
+      const timer = setTimeout(backgroundLoad, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasLoadedVisible, activeWeatherLayers.tafs, activeWeatherLayers.metars, activeWeatherLayers.weatherForecast, setTafsCache, setMetarsCache]);
 
   
   // --- JOB 2: Update Visible Markers (Runs on Map Move) ---
@@ -67,8 +77,8 @@ const DataFetcher = ({
       setVisibleTafs([]);
     }
 
-    // Update Visible METARs
-    if (activeWeatherLayers.metars) {
+    // Update Visible METARs / Weather Forecast
+    if (activeWeatherLayers.metars || activeWeatherLayers.weatherForecast) {
       const visible = [];
       for (const metar of metarsCache.values()) {
         const loc = L.latLng(metar.latitude, metar.longitude);
@@ -76,38 +86,54 @@ const DataFetcher = ({
           visible.push(metar);
         }
       }
+
+      // --- DEBUG: CHECK FOR ICON URL ---
+      if (visible.length > 0) {
+        // console.log("First visible METAR:", visible[0].station_id);
+        console.log("Has iconUrl?", visible);
+      }
+      // --------------------------------
+
       setVisibleMetars(visible);
     } else {
       setVisibleMetars([]);
     }
-  }, [map, activeWeatherLayers, tafsCache, metarsCache, setVisibleTafs, setVisibleMetars]);
 
-  // This hook listens for map movements
+    // Mark initial load as done so background fetching can start
+    if (!hasLoadedVisible && (activeWeatherLayers.tafs || activeWeatherLayers.metars || activeWeatherLayers.weatherForecast)) {
+      setHasLoadedVisible(true);
+    }
+
+  }, [map, activeWeatherLayers, tafsCache, metarsCache, setVisibleTafs, setVisibleMetars, hasLoadedVisible]);
+
+
+  // --- Event Listeners ---
+
   useMapEvents({
-    moveend: () => { // Fires when the user stops panning or zooming
+    moveend: () => { 
       updateVisibleMarkers();
     }
   });
 
-  // This hook updates visible markers if the layers are toggled
+  // Trigger update when layers change
   useEffect(() => {
     updateVisibleMarkers();
   }, [activeWeatherLayers, updateVisibleMarkers]);
 
+
+  // --- JOB 3: SIGMETs (Independent Logic) ---
   useEffect(() => {
     if (activeWeatherLayers.sigmets) {
       console.log("Fetching SIGMETs...");
       fetchAllSigmets().then(data => {
-        setSigmets(data); // Set the data
+        setSigmets(data); 
       });
     } else {
-      setSigmets([]); // Clear data if layer is off
+      setSigmets([]); 
     }
   }, [activeWeatherLayers.sigmets, setSigmets]);
 
-  return null; // This component doesn't render any visible UI
+  return null; 
 };
-
-
 
 export default DataFetcher;
