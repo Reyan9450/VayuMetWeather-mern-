@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 // Import Polygon
-import { MapContainer, TileLayer, Popup, CircleMarker, Polygon,Marker } from 'react-leaflet'; 
+import { MapContainer, TileLayer, Popup, CircleMarker, Polygon,Marker,ImageOverlay } from 'react-leaflet'; 
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
@@ -8,7 +8,7 @@ import SigmetLegend from './SigmetLegend/SigmetLegend'; // <-- 1. IMPORT THE NEW
 import DataFetcher from './DataFetcher/DataFetcher';
 import WeatherSymbolLegend from "./WeatherSymbolLegend/WeatherSymbolLegend";
 import L from 'leaflet';
-
+import { getForecastImageUrl } from '../services/weatherServices.js';
 // Configuration for different map themes
 const themes = {
   osm: {
@@ -48,7 +48,7 @@ const flightCategoryColors = {
 };
 
 
-const WeatherMap = ({ theme, activeWeatherLayers }) => {
+const WeatherMap = ({ theme, activeWeatherLayers,activeForecastLayer,forecastIndex,forecastMeta }) => {
   const mapCenter = [20.5937, 78.9629];
   const zoomLevel = 5;
 
@@ -163,6 +163,22 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
           </Popup>
         </Polygon>
       ))}
+
+      {/* --- NEW: RAIN FORECAST OVERLAY --- */}
+      {activeForecastLayer === 'rain' && forecastMeta && (
+        <ImageOverlay
+            // 1. Generate URL dynamically based on the slider index
+            url={getForecastImageUrl(forecastIndex)}
+            
+            // 2. Set bounds from metadata [[South, West], [North, East]]
+            bounds={[
+                [forecastMeta.bounds.south, forecastMeta.bounds.west],
+                [forecastMeta.bounds.north, forecastMeta.bounds.east]
+            ]}
+            opacity={0.6}
+            zIndex={500}
+        />
+      )}
 
       {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
       {activeWeatherLayers.weatherForecast && <WeatherSymbolLegend />}

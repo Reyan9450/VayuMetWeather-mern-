@@ -37,3 +37,27 @@ export const fetchAllSigmets = async () => {
         return [];
     }
 };
+
+// Fetch the bounds and settings
+export const fetchForecastMetadata = async () => {
+    try {
+        const response = await axios.get(`${API_BASE_URL}/api/forecast/metadata`);
+        return response.data;
+    } catch (error) {
+        console.error("Error fetching forecast metadata:", error);
+        return null;
+    }
+};
+
+// Generate the exact filename your backend expects
+export const getForecastImageUrl = (index) => {
+    // index 0 -> 0 hours
+    // index 1 -> 6 hours
+    // index 2 -> 12 hours
+    const hours = index * 6;
+    
+    // Matches your file naming: "0h_raint.png", "6h_raint.png"
+    const filename = `${hours}h_raint.png`; 
+
+    return `${API_BASE_URL}/api/forecast/images/${filename}`;
+};
