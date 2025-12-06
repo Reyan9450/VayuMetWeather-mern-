@@ -1,76 +1,72 @@
 import React, { useState } from 'react';
-// Import Polygon
-import { MapContainer, TileLayer, Popup, CircleMarker, Polygon,Marker } from 'react-leaflet'; 
+import { MapContainer, TileLayer, Popup, CircleMarker, Polygon, Marker, ImageOverlay } from 'react-leaflet'; 
 import TafPopup from './TafPopup/TafPopup';
 import MetarPopup from './MetarPopup/MetarPopup';
 import MetarLegend from './MetarLegend';
-import SigmetLegend from './SigmetLegend/SigmetLegend'; // <-- 1. IMPORT THE NEW LEGEND
+import SigmetLegend from './SigmetLegend/SigmetLegend';
 import DataFetcher from './DataFetcher/DataFetcher';
 import WeatherSymbolLegend from "./WeatherSymbolLegend/WeatherSymbolLegend";
+import { getForecastImageUrl } from '../services/weatherServices.js';
 import L from 'leaflet';
 
-// Configuration for different map themes
+// Theme configuration for base maps
 const themes = {
   osm: {
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    attribution: '&copy; OpenStreetMap contributors'
   },
   dark: {
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
   },
   satellite: {
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+    attribution: 'Tiles &copy; Esri'
   }
 };
 
-// Helper to create the custom icon object for Leaflet
+// Helper to create custom icon for weather symbols
 const createWeatherIcon = (url) => {
-//  console.log("Creating weather icon with URL:", url);
-  
   return L.icon({
-    iconUrl: url || '/icons/clear-day.svg', // Fallback
+    iconUrl: url || '/icons/clear-day.svg',
     iconSize: [30, 30], 
     iconAnchor: [15, 15],
     popupAnchor: [0, -15]
   });
 };
 
-
-// Define the colors for METAR flight categories
+// Color mapping for METAR flight categories
 const flightCategoryColors = {
   VFR: '#79c88d',   // Green
-  MVFR: '#79a1c8', // Blue
+  MVFR: '#79a1c8',  // Blue
   IFR: '#c87979',   // Red
-  LIFR: '#c079c8', // Magenta/Purple
+  LIFR: '#c079c8',  // Magenta
   UNKNOWN: '#aaaaaa' // Gray
 };
 
-
-const WeatherMap = ({ theme, activeWeatherLayers }) => {
+const WeatherMap = ({ 
+    theme, 
+    activeWeatherLayers, 
+    activeForecastLayer, // Prop from App (e.g., 'rain', 'icing', 'pm2_5')
+    forecastIndex,       // Prop from App (Current time step index)
+    forecastMeta         // Prop from App (Metadata with bounds)
+}) => {
   const mapCenter = [20.5937, 78.9629];
   const zoomLevel = 5;
 
-  // Caches for all data
+  // Local state for cached data
   const [tafsCache, setTafsCache] = useState(new Map());
   const [metarsCache, setMetarsCache] = useState(new Map());
   
-  // Arrays for currently visible markers
+  // State for currently visible markers (filtered by DataFetcher)
   const [visibleTafs, setVisibleTafs] = useState([]);
   const [visibleMetars, setVisibleMetars] = useState([]);
-
-  // State for SIGMETs (loaded all at once)
   const [sigmets, setSigmets] = useState([]); 
 
-  const worldBounds = L.latLngBounds(
-    L.latLng(-90, -180),
-    L.latLng(90, 180)
-  );
+  // Max bounds to prevent panning too far
+  const worldBounds = L.latLngBounds(L.latLng(-90, -180), L.latLng(90, 180));
 
-  const getMetarColor = (category) => {
-    return flightCategoryColors[category] || flightCategoryColors.UNKNOWN;
-  };
+  const getMetarColor = (category) => flightCategoryColors[category] || flightCategoryColors.UNKNOWN;
 
   return (
     <MapContainer
@@ -81,28 +77,43 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
       minZoom={4}
       maxBounds={worldBounds}
       maxBoundsViscosity={1.0}
+      style={{ width: "100%", height: "100vh" }}
     >
+      {/* 1. Base Map Layer */}
       <TileLayer
         url={themes[theme]?.url || themes.osm.url}
         attribution={themes[theme]?.attribution || themes.osm.attribution}
         noWrap={true}
       />
 
+      {/* 2. Headless Data Fetcher Component */}
       <DataFetcher
         activeWeatherLayers={activeWeatherLayers}
-        // Pass down the "STORE"
         tafsCache={tafsCache}
         metarsCache={metarsCache}
         setTafsCache={setTafsCache}
         setMetarsCache={setMetarsCache}
-        // Pass down the "WINDOW"
         setVisibleTafs={setVisibleTafs}
         setVisibleMetars={setVisibleMetars}
-        // Pass down the SIGMET setter
         setSigmets={setSigmets} 
       />
 
-      {/* --- Render TAFs --- */}
+      {/* 3. DYNAMIC FORECAST OVERLAY (Rain, Icing, etc.) */}
+      {/* Renders only if a forecast layer is active and metadata is loaded */}
+      {activeForecastLayer && forecastMeta && (
+        <ImageOverlay
+            // Dynamically fetch URL based on layer ID and current time index
+            url={getForecastImageUrl(activeForecastLayer, forecastIndex)}
+            bounds={[
+                [forecastMeta.bounds.south, forecastMeta.bounds.west], // SouthWest
+                [forecastMeta.bounds.north, forecastMeta.bounds.east]  // NorthEast
+            ]}
+            opacity={0.6}
+            zIndex={500}
+        />
+      )}
+
+      {/* 4. TAF Markers (Purple Circles) */}
       {activeWeatherLayers.tafs && visibleTafs.map(taf => (
         <CircleMarker
           key={`taf-${taf.station_id}`}
@@ -114,7 +125,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </CircleMarker>
       ))}
 
-      {/* --- Render METARs --- */}
+      {/* 5. METAR Markers (Colored Flight Category Circles) */}
       {activeWeatherLayers.metars && visibleMetars.map(metar => (
         <CircleMarker
           key={`metar-${metar.station_id}`}
@@ -131,25 +142,22 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </CircleMarker>
       ))}
      
-     {/* 4. ADD THIS NEW BLOCK FOR WEATHER SYMBOLS */}
+      {/* 6. Weather Icon Markers (Sun, Rain, Cloud icons) */}
       {activeWeatherLayers.weatherForecast && visibleMetars.map(metar => (
         <Marker
           key={`wx-${metar.station_id}`}
           position={[+metar.latitude, +metar.longitude]}
-          // Use the helper to create the icon from the URL provided by the backend
           icon={createWeatherIcon(metar.iconUrl)} 
         >
-          {/* We can reuse the MetarPopup since it has all the weather info */}
-        
+           <Popup className='custom-popup'><MetarPopup metar={metar} /></Popup>
         </Marker>
       ))}
  
-      {/* --- Render SIGMET Polygons --- */}
+      {/* 7. SIGMET Polygons */}
       {activeWeatherLayers.sigmets && sigmets.map(sigmet => (
         <Polygon
           key={`sigmet-${sigmet.id}`} 
           positions={sigmet.coordinates} 
-          // --- 2. USE THE DYNAMIC COLOR FROM THE BACKEND ---
           pathOptions={{ 
             color: sigmet.color,       
             fillColor: sigmet.color,   
@@ -164,7 +172,7 @@ const WeatherMap = ({ theme, activeWeatherLayers }) => {
         </Polygon>
       ))}
 
-      {/* 3. ADD CONDITIONAL RENDER FOR BOTH LEGENDS */}
+      {/* 8. Legends */}
       {activeWeatherLayers.weatherForecast && <WeatherSymbolLegend />}
       {activeWeatherLayers.metars && <MetarLegend />}
       {activeWeatherLayers.sigmets && <SigmetLegend />}

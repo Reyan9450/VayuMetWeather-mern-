@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 import tafRoutes from './routes/taf.routes.js';
 import metarRoutes from './routes/metar.routes.js';
 import sigmetRoutes from './routes/sigmet.routes.js';
+import forecastRoutes from './routes/forecast.routes.js';
 // Import the dataCache to start the file watchers
 import './utils/dataCache.js'; 
 
@@ -29,6 +30,7 @@ app.get('/', (req, res) => res.send('VayuMet API Running'));
 app.use('/api/tafs', tafRoutes);
 app.use('/api/metars', metarRoutes);
 app.use('/api/sigmets', sigmetRoutes);
+app.use('/api/forecast', forecastRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

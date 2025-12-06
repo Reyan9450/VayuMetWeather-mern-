@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-// Import the new Layers icon and the X icon for closing
+// Import icons
 import { Layers, X } from 'lucide-react';
 
 const SidePanel = ({
@@ -15,77 +15,115 @@ const SidePanel = ({
   setActiveForecastLayer,
   setTheme
 }) => {
-  const [isOpen, setIsOpen] = useState(false); // Start with the panel closed by default
+  const [isOpen, setIsOpen] = useState(false);
 
+  // 1. Handlers
   const handleBaseLayerChange = (id) => {
     setActiveBaseLayer(id);
     if (id === 'dark') setTheme('dark');
     if (id === 'osm' || id === 'satellite') setTheme('light');
   };
 
+  // Logic: Mutually exclusive toggle. 
+  // If clicking the active one, turn it off (set to null). 
+  // Otherwise, switch to the new one.
   const handleForecastLayerChange = (id) => {
     setActiveForecastLayer(prev => (prev === id ? null : id));
   };
 
   return (
     <>
-      {/* New Toggle Button - positioned top-right */}
+      {/* Toggle Button (Top Right) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="absolute top-4 right-4 z-[1001] flex items-center gap-2 rounded-full bg-gray-800/80 dark:bg-black/80 backdrop-blur-sm text-white px-4 py-2 font-semibold shadow-lg transition-transform hover:scale-105"
+        className="absolute top-4 right-4 z-[1001] flex items-center gap-2 rounded-full bg-gray-800/90 dark:bg-black/80 backdrop-blur-md text-white px-4 py-2 font-semibold shadow-lg transition-all hover:scale-105 hover:bg-blue-600"
       >
         <Layers size={18} />
-        Layers
+        <span>Layers</span>
       </button>
 
       {/* Sidebar Container */}
       <div
-        className={`absolute top-0 right-0 h-full z-[1000] bg-gray-800/80 dark:bg-black/80 backdrop-blur-sm text-white transition-transform duration-300 ease-in-out ${
+        className={`absolute top-0 right-0 h-full z-[1000] bg-gray-900/95 dark:bg-black/90 backdrop-blur-md text-gray-100 transition-transform duration-300 ease-in-out shadow-2xl ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
-        } w-64 p-4 overflow-y-auto`}
+        } w-72 p-5 overflow-y-auto border-l border-gray-700`}
       >
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">VayuMetWeather</h2>
-          {/* Add a close button inside the panel */}
-          <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-700">
+          <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+            VayuMet
+          </h2>
+          <button 
+            onClick={() => setIsOpen(false)} 
+            className="p-1 rounded-full hover:bg-gray-700 transition-colors text-gray-400 hover:text-white"
+          >
             <X size={24} />
           </button>
         </div>
         
-        <Section title="Base Layers">
+        {/* 1. BASE LAYERS (Radio) */}
+        <Section title="Base Maps">
           {baseLayers.map(layer => (
-            <LayerItem key={layer.id} {...layer} isActive={activeBaseLayer === layer.id} onClick={() => handleBaseLayerChange(layer.id)} type="radio" />
+            <LayerItem 
+                key={layer.id} 
+                {...layer} 
+                isActive={activeBaseLayer === layer.id} 
+                onClick={() => handleBaseLayerChange(layer.id)} 
+                type="radio" 
+            />
           ))}
         </Section>
 
-        <Section title="Weather Layers">
+        {/* 2. WEATHER LAYERS (Checkbox - Multiple Allowed) */}
+        <Section title="Aviation Data">
           {weatherLayers.map(layer => (
-            <LayerItem key={layer.id} {...layer} isActive={activeWeatherLayers[layer.id]} onClick={() => toggleWeatherLayer(layer.id)} type="checkbox" />
+            <LayerItem 
+                key={layer.id} 
+                {...layer} 
+                isActive={activeWeatherLayers[layer.id]} 
+                onClick={() => toggleWeatherLayer(layer.id)} 
+                type="checkbox" 
+            />
           ))}
         </Section>
         
-        <Section title="Forecast Elements">
+        {/* 3. FORECAST ELEMENTS (Radio - Exclusive) */}
+        {/* This includes your new RAIN layer */}
+        <Section title="Forecast Models">
           {forecastElements.map(layer => (
-            <LayerItem key={layer.id} {...layer} isActive={activeForecastLayer === layer.id} onClick={() => handleForecastLayerChange(layer.id)} type="radio" />
+            <LayerItem 
+                key={layer.id} 
+                {...layer} 
+                isActive={activeForecastLayer === layer.id} 
+                onClick={() => handleForecastLayerChange(layer.id)} 
+                type="radio" 
+            />
           ))}
         </Section>
 
-        <Section title="Particulate Matter">
+        {/* 4. PARTICULATE MATTER (Radio - Exclusive) */}
+        {/* Note: This shares state with Forecast, so switching to PM turns off Rain */}
+        <Section title="Air Quality">
           {particulateMatter.map(layer => (
-            <LayerItem key={layer.id} {...layer} isActive={activeForecastLayer === layer.id} onClick={() => handleForecastLayerChange(layer.id)} type="radio" />
+            <LayerItem 
+                key={layer.id} 
+                {...layer} 
+                isActive={activeForecastLayer === layer.id} 
+                onClick={() => handleForecastLayerChange(layer.id)} 
+                type="radio" 
+            />
           ))}
         </Section>
       </div>
-      
-      {/* The old toggle button has been removed */}
     </>
   );
 };
 
-// Helper components (no changes needed)
+// --- Helper Components ---
+
 const Section = ({ title, children }) => (
-  <div className="mb-6">
-    <h3 className="text-sm font-semibold text-gray-300 border-b border-gray-600 pb-1 mb-2">
+  <div className="mb-8">
+    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 px-1">
       {title}
     </h3>
     <div className="space-y-1">{children}</div>
@@ -95,21 +133,35 @@ const Section = ({ title, children }) => (
 const LayerItem = ({ name, isActive, onClick, type }) => (
   <div
     onClick={onClick}
-    className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
-      isActive ? 'bg-blue-500/50' : 'hover:bg-gray-700/50'
+    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer transition-all duration-200 group ${
+      isActive 
+        ? 'bg-blue-600/20 text-blue-400 border border-blue-500/30' 
+        : 'hover:bg-gray-800 text-gray-300 border border-transparent'
     }`}
   >
-    {type === 'radio' && (
-      <div className="w-4 h-4 rounded-full border-2 border-gray-400 flex items-center justify-center mr-3 flex-shrink-0">
-        {isActive && <div className="w-2 h-2 rounded-full bg-white"></div>}
-      </div>
-    )}
-    {type === 'checkbox' && (
-      <div className="w-4 h-4 rounded border-2 border-gray-400 flex items-center justify-center mr-3 flex-shrink-0">
-        {isActive && <div className="w-2 h-2 bg-white"></div>}
-      </div>
-    )}
-    <span className="text-sm">{name}</span>
+    <span className="text-sm font-medium">{name}</span>
+    
+    <div className={`relative flex items-center justify-center w-5 h-5 transition-all ${
+        isActive ? 'scale-110' : 'group-hover:scale-110'
+    }`}>
+      {/* Radio Circle */}
+      {type === 'radio' && (
+        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+            isActive ? 'border-blue-400' : 'border-gray-500'
+        }`}>
+          {isActive && <div className="w-2 h-2 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(96,165,250,0.8)]" />}
+        </div>
+      )}
+
+      {/* Checkbox Square */}
+      {type === 'checkbox' && (
+        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+            isActive ? 'border-blue-400 bg-blue-400/20' : 'border-gray-500'
+        }`}>
+           {isActive && <div className="w-2.5 h-2.5 bg-blue-400 rounded-sm shadow-[0_0_8px_rgba(96,165,250,0.8)]" />}
+        </div>
+      )}
+    </div>
   </div>
 );
 
