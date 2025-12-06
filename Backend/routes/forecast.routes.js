@@ -4,6 +4,8 @@ import { getForecastMetadata, getForecastImage } from '../controllers/forecast.c
 const router = express.Router();
 
 router.get('/metadata', getForecastMetadata);
-router.get('/images/:filename', getForecastImage);
+
+// UPDATED ROUTE: Now accepts :layer (e.g., 'rain', 'icing') and :filename
+router.get('/images/:layer/:filename', getForecastImage);
 
 export default router;

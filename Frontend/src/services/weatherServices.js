@@ -1,5 +1,5 @@
 import axios from 'axios';
-
+import { forecastElements, particulateMatter } from '../config/layer.js';
 // This logic automatically selects the correct URL for dev vs. production
 const API_BASE_URL = import.meta.env.MODE === 'production'
   ? 'https://vayumet-weather-server.onrender.com'
@@ -49,15 +49,31 @@ export const fetchForecastMetadata = async () => {
     }
 };
 
-// Generate the exact filename your backend expects
-export const getForecastImageUrl = (index) => {
-    // index 0 -> 0 hours
-    // index 1 -> 6 hours
-    // index 2 -> 12 hours
+/**
+ * Generates the URL for a specific forecast image.
+ * @param {string} layerId - The ID of the layer (e.g., 'rain', 'icing', 'pm2_5').
+ * @param {number} index - The time index (0, 1, 2...).
+ * @returns {string} - The full URL to the image on the backend.
+ */
+export const getForecastImageUrl = (layerId, index) => {
+    // 1. Combine lists to find the matching configuration
+    const allLayers = [...forecastElements, ...particulateMatter];
+    const layerConfig = allLayers.find(l => l.id === layerId);
+
+    // Safety check: if the layer isn't found, return empty string to avoid errors
+    if (!layerConfig) {
+        console.warn(`Layer config not found for ID: ${layerId}`);
+        return '';
+    }
+
+    // 2. Calculate hours (e.g., index 1 -> 6 hours)
     const hours = index * 6;
     
-    // Matches your file naming: "0h_raint.png", "6h_raint.png"
-    const filename = `${hours}h_raint.png`; 
+    // 3. Construct filename using the specific suffix from config
+    // Example: "6h" + "_icing" + ".png"
+    const filename = `${hours}h${layerConfig.suffix}.png`; 
 
-    return `${API_BASE_URL}/api/forecast/images/${filename}`;
+    // 4. Return URL: /api/forecast/images/{folder}/{filename}
+    // Example: .../api/forecast/images/icing/6h_icing.png
+    return `${API_BASE_URL}/api/forecast/images/${layerConfig.folder}/${filename}`;
 };
